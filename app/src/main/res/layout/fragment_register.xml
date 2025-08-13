@@ -38,14 +38,14 @@
         android:background="#e0e0e0"
         tools:srcCompat="@tools:sample/avatars" /> <!-- Placeholder image -->
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/resend_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Resend" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/next_button_register"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

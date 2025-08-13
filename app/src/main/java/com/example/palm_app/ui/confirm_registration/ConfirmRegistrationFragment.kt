@@ -25,7 +25,9 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.camera.core.ImageProxy
-
+import android.widget.TextView
+import com.example.palm_app.R
+import android.text.TextUtils
 
 class ConfirmRegistrationFragment : Fragment() {
 
@@ -77,7 +79,19 @@ class ConfirmRegistrationFragment : Fragment() {
                 Toast.makeText(requireContext(), "QR Code not scanned yet", Toast.LENGTH_SHORT).show()
             }
         }
+        val scannedQrContent = view.findViewById<TextView>(R.id.scanned_qr_content)
+        var isExpanded = false
 
+        scannedQrContent.setOnClickListener {
+            isExpanded = !isExpanded
+            if (isExpanded) {
+                scannedQrContent.maxLines = Integer.MAX_VALUE
+                scannedQrContent.ellipsize = null
+            } else {
+                scannedQrContent.maxLines = 1
+                scannedQrContent.ellipsize = TextUtils.TruncateAt.END
+            }
+        }
     }
 
     private fun startCamera() {

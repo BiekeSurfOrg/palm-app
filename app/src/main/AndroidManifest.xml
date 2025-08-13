@@ -15,10 +15,13 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /> <!-- Needed if you plan to create a GATT server for the connection -->
 
-    <!-- Recommended if your app targets S or higher and uses Bluetooth -->
-    <!-- You might also need BLUETOOTH_SCAN if discovery is involved, -->
-    <!-- or ACCESS_FINE_LOCATION for older Android versions for BLE scanning/advertising depending on use case. -->
-    <!-- For connectable advertisements, the system needs to be able to scan for responses. -->
+    <!-- Declare BLE capability (optional but nice) -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <!-- Android 13+ notifications runtime permission for the foreground notification -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
 
     <application
@@ -41,6 +44,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".ble.BlePeripheralService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 
 </manifest>

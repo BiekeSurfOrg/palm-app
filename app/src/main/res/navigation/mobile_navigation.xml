@@ -15,17 +15,9 @@
             app:destination="@id/nav_register" />
     </fragment>
 
-    <fragment
-        android:id="@+id/nav_gallery"
-        android:name="com.example.palm_app.ui.gallery.GalleryFragment"
-        android:label="@string/menu_gallery"
-        tools:layout="@layout/fragment_gallery" />
 
-    <fragment
-        android:id="@+id/nav_slideshow"
-        android:name="com.example.palm_app.ui.slideshow.SlideshowFragment"
-        android:label="@string/menu_slideshow"
-        tools:layout="@layout/fragment_slideshow" />
+
+
 
     <!-- Register Step -->
     <fragment
@@ -60,23 +52,12 @@
         android:name="com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment"
         android:label="@string/menu_ble_advertising"
         tools:layout="@layout/fragment_ble_advertising">
-        <action
-            android:id="@+id/action_ble_advertising_to_gatt_check"
-            app:destination="@id/nav_gatt_check" />
         <argument
             android:name="qrData"
             app:argType="string"
             app:nullable="true" />
-        <action
-            android:id="@+id/action_bleAdvertisingFragment_to_gattCheckFragment"
-            app:destination="@id/nav_gatt_check" />
     </fragment>
 
-    <!-- Check GATT Step -->
-    <fragment
-        android:id="@+id/nav_gatt_check"
-        android:name="com.example.palm_app.ui.gatt_check.GattCheckFragment"
-        android:label="@string/menu_gatt_check"
-        tools:layout="@layout/fragment_gatt_check" />
+
 
 </navigation>

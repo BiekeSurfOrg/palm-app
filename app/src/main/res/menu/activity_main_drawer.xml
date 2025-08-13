@@ -16,10 +16,7 @@
             android:id="@+id/nav_ble_advertising"
             android:icon="@drawable/ic_menu_slideshow"
             android:title="@string/menu_ble_advertising" />
-        <item
-            android:id="@+id/nav_gatt_check"
-            android:icon="@drawable/ic_menu_slideshow"
-            android:title="@string/menu_gatt_check" />
+
     </group>
 
     <item

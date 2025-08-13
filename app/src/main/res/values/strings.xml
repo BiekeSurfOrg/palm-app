@@ -13,7 +13,6 @@
     <string name="menu_register">Register</string>
     <string name="menu_confirm_registration">Confirm Registration</string>
     <string name="menu_ble_advertising">Check BLE Advertising</string>
-    <string name="menu_gatt_check">Check GATT</string>
     <string name="start_button_label">START</string>
     <string name="restart_button_label">RESTART</string>
     <string name="menu_restart">Restart</string>
