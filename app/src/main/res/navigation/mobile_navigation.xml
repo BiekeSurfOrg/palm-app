@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.example.palm_app.ui.home.HomeFragment"
+        android:label="@string/menu_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_nav_home_to_nav_register"
+            app:destination="@id/nav_register" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_gallery"
+        android:name="com.example.palm_app.ui.gallery.GalleryFragment"
+        android:label="@string/menu_gallery"
+        tools:layout="@layout/fragment_gallery" />
+
+    <fragment
+        android:id="@+id/nav_slideshow"
+        android:name="com.example.palm_app.ui.slideshow.SlideshowFragment"
+        android:label="@string/menu_slideshow"
+        tools:layout="@layout/fragment_slideshow" />
+
+    <!-- Register Step -->
+    <fragment
+        android:id="@+id/nav_register"
+        android:name="com.example.palm_app.ui.register.RegisterFragment"
+        android:label="@string/menu_register"
+        tools:layout="@layout/fragment_register">
+        <action
+            android:id="@+id/action_register_to_confirm_registration"
+            app:destination="@id/nav_confirm_registration" />
+        <argument
+            android:name="jsonData"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <!-- Confirm Registration Step -->
+    <fragment
+        android:id="@+id/nav_confirm_registration"
+        android:name="com.example.palm_app.ui.confirm_registration.ConfirmRegistrationFragment"
+        android:label="@string/menu_confirm_registration"
+        tools:layout="@layout/fragment_confirm_registration">
+        <action
+            android:id="@+id/action_confirm_registration_to_ble_advertising"
+            app:destination="@id/nav_ble_advertising" />
+    </fragment>
+
+    <!-- Check BLE Advertising Step -->
+    <fragment
+        android:id="@+id/nav_ble_advertising"
+        android:name="com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment"
+        android:label="@string/menu_ble_advertising"
+        tools:layout="@layout/fragment_ble_advertising">
+        <action
+            android:id="@+id/action_ble_advertising_to_gatt_check"
+            app:destination="@id/nav_gatt_check" />
+        <argument
+            android:name="qrData"
+            app:argType="string"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_bleAdvertisingFragment_to_gattCheckFragment"
+            app:destination="@id/nav_gatt_check" />
+    </fragment>
+
+    <!-- Check GATT Step -->
+    <fragment
+        android:id="@+id/nav_gatt_check"
+        android:name="com.example.palm_app.ui.gatt_check.GattCheckFragment"
+        android:label="@string/menu_gatt_check"
+        tools:layout="@layout/fragment_gatt_check" />
+
+</navigation>
