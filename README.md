@@ -22,7 +22,7 @@ This is an Android application built with Kotlin and Jetpack Navigation Componen
 8. Click "Start Advertising" to start the BLE advertising.
 9. If a Palmki verification device picks up the BLE package it will connect ith the app using GATT protocol. The app will send the registered part of the Palmki-hash to the device.
 10. For the connection the user has to give authorisation on both the app and the device. In the app popups will appear when the GATT connection is created and stopped.
-11. In the current version of the palmki scanner with GATT connection (https://github.com/BiekeSurfOrg/palm-BLE-GATT-scanner) the server will display the receibed data.
+11. In the current version of the palmki scanner with GATT connection (https://github.com/BiekeSurfOrg/palm-BLE-GATT-scanner) the server will display the received data.
 
 ## Installation and Build Instructions
 
