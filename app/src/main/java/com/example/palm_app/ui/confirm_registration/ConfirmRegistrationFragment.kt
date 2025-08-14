@@ -1,6 +1,7 @@
 package com.example.palm_app.ui.confirm_registration
 
 import android.Manifest
+import android.content.Context // Added for SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -70,26 +71,23 @@ class ConfirmRegistrationFragment : Fragment() {
 
         binding.nextButtonConfirm.setOnClickListener {
             scannedQrCodeContent?.let { qrData ->
-                // Pass the scannedQrCodeContent as the qrData argument
                 val action = ConfirmRegistrationFragmentDirections.actionConfirmRegistrationToBleAdvertising(qrData)
                 findNavController().navigate(action)
             } ?: run {
-                // Handle the case where scannedQrCodeContent is null,
-                // for example, by showing a Toast message.
                 Toast.makeText(requireContext(), "QR Code not scanned yet", Toast.LENGTH_SHORT).show()
             }
         }
-        val scannedQrContent = view.findViewById<TextView>(R.id.scanned_qr_content)
+        val scannedQrContentTextView = view.findViewById<TextView>(R.id.scanned_qr_content) // Renamed for clarity
         var isExpanded = false
 
-        scannedQrContent.setOnClickListener {
+        scannedQrContentTextView.setOnClickListener {
             isExpanded = !isExpanded
             if (isExpanded) {
-                scannedQrContent.maxLines = Integer.MAX_VALUE
-                scannedQrContent.ellipsize = null
+                scannedQrContentTextView.maxLines = Integer.MAX_VALUE
+                scannedQrContentTextView.ellipsize = null
             } else {
-                scannedQrContent.maxLines = 1
-                scannedQrContent.ellipsize = TextUtils.TruncateAt.END
+                scannedQrContentTextView.maxLines = 1
+                scannedQrContentTextView.ellipsize = TextUtils.TruncateAt.END
             }
         }
     }
@@ -114,18 +112,21 @@ class ConfirmRegistrationFragment : Fragment() {
             .also {
                 it.setAnalyzer(cameraExecutor, BarcodeAnalyzer { qrContent ->
                     // qrContent is available from the BarcodeAnalyzer.
-                    // Update the member variable as soon as the callback is received.
+
+                    // <<< --- MODIFICATION START: Save to SharedPreferences --- >>>
+                    saveStringToPrefs(KEY_PALM_HASH, qrContent)
+                    Log.d(TAG, "Saved QR content to SharedPreferences with key '$KEY_PALM_HASH': $qrContent")
+                    // <<< --- MODIFICATION END --- >>>
+
                     scannedQrCodeContent = qrContent // Store the content immediately
                     Log.d(TAG, "scannedQrCodeContent updated to: $qrContent")
 
-                    // Now, attempt to update the UI if the view is still available.
                     activity?.runOnUiThread {
                         _binding?.let { safeBinding ->
                             safeBinding.scannedQrContent.text = qrContent // Update UI
                             Log.d(TAG, "UI TextView updated with: $qrContent")
                         } ?: run {
-                            // This block executes if _binding is null.
-                            Log.w(TAG, "Binding is null, cannot update UI TextView. View might be destroyed, but scannedQrCodeContent is already updated.")
+                            Log.w(TAG, "Binding is null, cannot update UI TextView. View might be destroyed.")
                         }
                     }
                 })
@@ -134,7 +135,7 @@ class ConfirmRegistrationFragment : Fragment() {
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
         try {
-            cameraProvider.unbindAll() // Unbind use cases before rebinding
+            cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
                 viewLifecycleOwner,
                 cameraSelector,
@@ -142,10 +143,20 @@ class ConfirmRegistrationFragment : Fragment() {
                 imageAnalysis
             )
         } catch (exc: Exception) {
-            Log.e("ConfirmRegistration", "Use case binding failed", exc)
+            Log.e(TAG, "Use case binding failed", exc) // Use TAG for consistency
             Toast.makeText(requireContext(), "Failed to start camera", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // <<< --- MODIFICATION START: SharedPreferences helper function --- >>>
+    private fun saveStringToPrefs(key: String, value: String) {
+        val sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putString(key, value)
+            apply()
+        }
+    }
+    // <<< --- MODIFICATION END --- >>>
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -155,10 +166,12 @@ class ConfirmRegistrationFragment : Fragment() {
 
     companion object {
         private const val TAG = "ConfirmRegistrationFragment"
+        // <<< --- MODIFICATION START: SharedPreferences constants --- >>>
+        const val PREFS_NAME = "PalmAppPrefs" // Same as HomeFragment
+        const val KEY_PALM_HASH = "palm_hash"  // Key for storing the QR content
+        // <<< --- MODIFICATION END --- >>>
     }
 }
-
-
 
 // Analyzer class for ML Kit Barcode Scanning
 class BarcodeAnalyzer(private val onBarcodeScanned: (String) -> Unit) : ImageAnalysis.Analyzer {
@@ -166,46 +179,29 @@ class BarcodeAnalyzer(private val onBarcodeScanned: (String) -> Unit) : ImageAna
         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
         .build()
     private val scanner = BarcodeScanning.getClient(options)
-    // Removed: private val varisProcessing = false // This variable was not used and could be a typo for "isProcessing"
-    // Consider adding a flag like `private var isProcessing = false` if you need to prevent concurrent processing.
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-
-            // Optional: Implement a flag to prevent processing multiple frames at once if needed
-            // if (isProcessing) {
-            //     imageProxy.close()
-            //     return
-            // }
-            // isProcessing = true
-
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
                     for (barcode in barcodes) {
                         barcode.rawValue?.let { rawValue ->
                             onBarcodeScanned(rawValue)
                             // Optional: If you only need one scan, you might stop further processing here.
-                            // scanner.close() // Close the scanner if no longer needed.
                         }
                     }
                 }
                 .addOnFailureListener {
-                    // Handle any errors here, e.g., log them
                     Log.e("BarcodeAnalyzer", "Barcode scanning failed", it)
                 }
                 .addOnCompleteListener {
-                    // It's important to close the ImageProxy otherwise the camera will stop producing images.
                     imageProxy.close()
-                    // Optional: Reset processing flag
-                    // isProcessing = false
                 }
         } else {
-            // If mediaImage is null, close the ImageProxy and return.
             imageProxy.close()
         }
     }
 }
-

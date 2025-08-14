@@ -37,9 +37,17 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+
+
+
+    
 }
 
 dependencies {
+    val composeBom = platform("androidx.compose:compose-bom:2024.06.00") // Check for latest BOM
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -65,5 +73,16 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation("com.google.android.material:material:1.11.0") 
+    implementation(libs.material.v1120) // Check for the latest version
+    implementation(libs.androidx.core.ktx.v1131)
+    implementation(libs.androidx.activity.ktx) // For edge-to-edge
+    implementation(libs.androidx.fragment.ktx) // For edge-to-edge in fragments
+
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.ui.tooling.preview)
+    debugImplementation(libs.androidx.ui.tooling)
+    implementation(libs.coil.compose) // For AsyncImage
+
+    implementation("androidx.core:core-ktx:1.9.0") 
+    
 }

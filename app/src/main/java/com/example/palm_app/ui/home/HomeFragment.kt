@@ -1,30 +1,41 @@
 package com.example.palm_app.ui.home
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView // Kept for existing code, can be removed if text_home is removed
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.palm_app.databinding.FragmentHomeBinding
-import kotlinx.coroutines.Dispatchers
+import com.example.palm_app.network.ApiService // Added import for ApiService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.IOException
+import kotlinx.coroutines.Dispatchers // Ensured Dispatchers is imported for withContext(Dispatchers.Main)
+
+// Removed: import okhttp3.OkHttpClient
+// Removed: import okhttp3.Request
+// Removed: import java.io.IOException - ApiService handles this
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private val client = OkHttpClient()
+    // Removed: private val client = OkHttpClient() - ApiService handles this
+
+    companion object {
+        const val PREFS_NAME = "PalmAppPrefs"
+        const val KEY_ID_RESPONSE = "identity"
+        const val KEY_USERID = "user_id"
+        const val KEY_BLE_DATA = "ble_data"
+        const val KEY_PALM_HASH = "palm_hash"
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,7 +48,7 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textHome // Kept for existing code
+        val textView: TextView = binding.textHome
         homeViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
@@ -47,57 +58,105 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val previousApiResponse = getStringFromPrefs(KEY_ID_RESPONSE)
+        if (previousApiResponse != null) {
+            Log.d("HomeFragment", "Retrieved previous identity response for key '$KEY_ID_RESPONSE': $previousApiResponse")
+        } else {
+            Log.d("HomeFragment", "No previous identity response found for key '$KEY_ID_RESPONSE'")
+        }
+
+        val previousUserId = getStringFromPrefs(KEY_USERID)
+        if (previousUserId != null) {
+            Log.d("HomeFragment", "Retrieved previous User ID for key '$KEY_USERID': $previousUserId")
+            binding.userIdEditText.setText(previousUserId)
+        } else {
+            Log.d("HomeFragment", "No previous User ID found for key '$KEY_USERID'")
+            binding.userIdEditText.setText("1")
+        }
+
         binding.startButton.setOnClickListener {
             val userIdString = binding.userIdEditText.text.toString()
             val userId = userIdString.toIntOrNull()
+
             if (userId == null || userId < 1) {
                 Toast.makeText(context, "Please enter a valid User ID (1 or higher)", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
-            // Make network request in a coroutine
-            lifecycleScope.launch {
+            if (userIdString.isNotEmpty()) {
+                saveStringToPrefs(KEY_USERID, userIdString)
+                Log.d("HomeFragment", "Saved User ID '$userIdString' to SharedPreferences with key '$KEY_USERID'")
+            }
+
+            lifecycleScope.launch { // Coroutine for UI-related tasks after network call
                 fetchDataAndNavigate(userId)
             }
         }
 
         binding.restartButton.setOnClickListener {
-            binding.userIdEditText.setText("1")
+            val defaultUserId = "1"
+            binding.userIdEditText.setText(defaultUserId)
+            saveStringToPrefs(KEY_USERID, defaultUserId)
             Toast.makeText(context, "Restart: User ID reset to 1.", Toast.LENGTH_SHORT).show()
+            clearStringFromPrefs(KEY_ID_RESPONSE)
+            Log.d("HomeFragment", "Cleared API response for key '$KEY_ID_RESPONSE' on restart.")
+            Log.d("HomeFragment", "Saved User ID '$defaultUserId' to SharedPreferences with key '$KEY_USERID' on restart.")
         }
     }
 
     private suspend fun fetchDataAndNavigate(userId: Int) {
-        val url = "https://palm-central-7d7e7aad638d.herokuapp.com/Palmki/api/identity/$userId"
-        val request = Request.Builder().url(url).header("Content-Type", "application/json").build()
+        // Call the shared ApiService
+        val result = ApiService.fetchIdentity(userId)
 
-        var jsonResponse: String? = null
-        var errorMessage: String? = null
-
-        withContext(Dispatchers.IO) {
-            try {
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) throw IOException("Unexpected code ${response}")
-                    jsonResponse = response.body?.string() // Get the raw JSON string
-                }
-            } catch (e: IOException) {
-                Log.e("HomeFragment", "Network request failed", e)
-                errorMessage = "Network request failed: ${e.message}"
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "An unexpected error occurred", e)
-                errorMessage = "An unexpected error occurred: ${e.message}"
-            }
-        }
-
+        // Handle the result on the Main thread for UI operations
         withContext(Dispatchers.Main) {
-            if (jsonResponse != null) {
-                // Navigate using Safe Args, passing the raw JSON string
-                val action = HomeFragmentDirections.actionNavHomeToNavRegister(jsonResponse)
-                findNavController().navigate(action)
-            } else {
-                Toast.makeText(context, errorMessage ?: "Failed to fetch data.", Toast.LENGTH_LONG).show()
+            when (result) {
+                is ApiService.FetchIdentityResult.Success -> {
+                    val jsonResponse = result.jsonResponse
+                    Log.d("HomeFragment", "Successfully fetched identity for User ID $userId: $jsonResponse")
+                    // Save the API JSON (identity) to SharedPreferences
+                    saveStringToPrefs(KEY_ID_RESPONSE, jsonResponse)
+
+                    // Navigate
+                    val action = HomeFragmentDirections.actionNavHomeToNavRegister(jsonResponse)
+                    findNavController().navigate(action)
+                }
+                is ApiService.FetchIdentityResult.Error -> {
+                    val errorMessage = result.errorMessage
+                    Log.e("HomeFragment", "Failed to fetch identity for User ID $userId: $errorMessage")
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                }
             }
         }
+    }
+
+    private fun saveStringToPrefs(key: String, value: String) {
+        val sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putString(key, value)
+            apply()
+        }
+        Log.d("HomeFragment", "Saved string to SharedPreferences with key '$key'")
+    }
+
+    private fun getStringFromPrefs(key: String): String? {
+        val sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val value = sharedPreferences.getString(key, null)
+        if (value != null) {
+            Log.d("HomeFragment", "Retrieved string from SharedPreferences for key '$key'")
+        } else {
+            Log.d("HomeFragment", "No string found in SharedPreferences for key '$key'")
+        }
+        return value
+    }
+
+    private fun clearStringFromPrefs(key: String) {
+        val sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            remove(key)
+            apply()
+        }
+        Log.d("HomeFragment", "Cleared string from SharedPreferences for key '$key'")
     }
 
     override fun onDestroyView() {

@@ -1,0 +1,22 @@
+<resources>
+    <style name="TextAppearance.Palmapp.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:fontFamily">sans-serif-medium</item> <!-- Or your custom font -->
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <style name="TextAppearance.Palmapp.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">sans-serif-medium</item> <!-- Using medium for semibold -->
+        <item name="android:textSize">16sp</item>
+        <item name="fontWeight">600</item> <!-- M3 uses this, ensure font supports it or use a semibold font family -->
+    </style>
+
+    <style name="TextAppearance.Palmapp.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">sans-serif</item> <!-- Or your custom font for regular -->
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TextAppearance.Palmapp.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+</resources>

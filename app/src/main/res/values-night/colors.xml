@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!-- App-level aliases to your M3 dark palette -->
+<color name="colorPrimaryVariant">@color/md_theme_dark_onPrimaryContainer</color>
+<color name="colorSecondaryVariant">@color/md_theme_dark_secondaryContainer</color>
+
+<color name="colorPrimaryText">@color/md_theme_dark_onSurface</color>
+<color name="colorSecondaryText">#98A2B3</color> <!-- subtle onSurface (~70%) -->
+
+<color name="colorDivider">@color/md_theme_dark_outline</color>
+<color name="colorOutline">@color/md_theme_dark_outline</color>
+</resources>

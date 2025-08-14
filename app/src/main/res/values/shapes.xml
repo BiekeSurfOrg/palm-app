@@ -1,0 +1,26 @@
+<resources>
+    <!-- ShapeAppearance for components -->
+    <style name="ShapeAppearance.Palmapp.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item> <!-- Pill cards, TextFields -->
+    </style>
+
+    <style name="ShapeAppearance.Palmapp.MediumComponent" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item> <!-- Profile Cards, Buttons (can be overridden per component) -->
+    </style>
+
+    <style name="ShapeAppearance.Palmapp.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <!-- Specific for footer -->
+    <style name="ShapeAppearance.Palmapp.Footer" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+</resources>

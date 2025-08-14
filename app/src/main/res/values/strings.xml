@@ -18,4 +18,9 @@
     <string name="menu_restart">Restart</string>
     <string name="start_advertising_text">Start Advertising</string>
     <string name="stop_advertising_text">Stop Advertising</string>
+    <string name="next">Next</string>
+    <string name="prev">Previous</string>
+    <string name="footer_label">Actions</string>
+
+
 </resources>

@@ -70,6 +70,7 @@ class BlePeripheralService : Service() {
                 val p = intent.getByteArrayExtra(EXTRA_PAYLOAD)
                     ?: (intent.getStringExtra(EXTRA_PAYLOAD)?.toByteArray(StandardCharsets.UTF_8) ?: ByteArray(0))
                 payload = p
+                Log.i(TAG, "ACTION_START: Received payload with size: ${payload.size}. Content (first 50 bytes): ${payload.take(50).joinToString { String.format("%02X", it) }}")
                 startForeground(42, NotificationUtils.foreground(this))
                 startBle()
             }
@@ -213,14 +214,35 @@ class BlePeripheralService : Service() {
             device: BluetoothDevice, requestId: Int, descriptor: BluetoothGattDescriptor,
             preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray
         ) {
+            Log.i(TAG, "onDescriptorWriteRequest: uuid=${descriptor.uuid}, device=${device.address}, value=${value.joinToString { String.format("%02X", it) }}") // ADD THIS LOG
             if (!hasConnectPerm()) {
                 Log.w(TAG, "Missing BLUETOOTH_CONNECT; cannot handle descriptor write")
                 return
             }
             if (descriptor.uuid == CCCD_UUID && value.size >= 2 && value[0] == 0x01.toByte()) {
                 if (responseNeeded) {
-                    try { gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) } catch (_: SecurityException) {}
+                    try {
+                        gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+                        Log.i(TAG, "onDescriptorWriteRequest: Sent GATT_SUCCESS response for CCCD write.")
+                    } catch (se: SecurityException) {
+                        Log.e(TAG, "onDescriptorWriteRequest: SecurityException sending CCCD response", se)
+                        return // Or handle disconnect
+                    }
                 }
+//                val testChar = gattServer?.getService(SERVICE_UUID)?.getCharacteristic(DATA_CHAR_UUID)
+//                if (testChar != null) {
+//                    testChar.value = "HELLO".toByteArray(StandardCharsets.UTF_8)
+//                    try {
+//                        val notified = gattServer?.notifyCharacteristicChanged(device, testChar, false)
+//                        Log.i(TAG, "onDescriptorWriteRequest: Attempted test notification. Success: $notified")
+//                    } catch (se: SecurityException) {
+//                        Log.e(TAG, "onDescriptorWriteRequest: SecurityException on test notifyCharacteristicChanged", se)
+//                    }
+//                } else {
+//                    Log.e(TAG, "onDescriptorWriteRequest: DATA_CHAR_UUID not found for test notification.")
+//                }
+//                return
+
                 val mtu = currentMtu[device.address] ?: 185
                 streamNotifications(device, mtu)
                 return
@@ -233,11 +255,23 @@ class BlePeripheralService : Service() {
 
     private fun streamNotifications(device: BluetoothDevice, mtu: Int) {
         if (!hasConnectPerm()) { Log.w(TAG, "Missing BLUETOOTH_CONNECT; cannot notify"); return }
-        val ch = dataChar ?: return
+        val ch = dataChar ?: run { Log.e(TAG, "dataChar is null in streamNotifications"); return }
+        val currentPayload = payload // Use a local copy in case it's updated concurrently
+
+        Log.d(TAG, "streamNotifications: payload.size = ${currentPayload.size}, mtu = $mtu")
+        if (currentPayload.isEmpty()) {
+            Log.w(TAG, "streamNotifications: Payload is empty, nothing to send.")
+            // Optionally send a single empty notification or a status notification if needed
+            // ch.value = byteArrayOf(0x00) // Example: send a single byte
+            // gattServer?.notifyCharacteristicChanged(device, ch, false)
+            return
+        }
+
         val safeChunk = min(mtu - 3, 244)
         val total = (payload.size + safeChunk - 1) / safeChunk
         var seq = 0
         var pos = 0
+        Log.d(TAG, "streamNotifications: Starting stream. safeChunk=$safeChunk, totalPacketsExpected=$total")
         while (pos < payload.size) {
             val len = min(safeChunk, payload.size - pos)
             val header = byteArrayOf(
@@ -247,10 +281,16 @@ class BlePeripheralService : Service() {
             )
             val frame = header + payload.copyOfRange(pos, pos + len)
             ch.value = frame
+            Log.d(TAG, "streamNotifications: Sending seq=$seq, pos=$pos, len=$len, frame.size=${frame.size}")
+
             try {
                 @Suppress("DEPRECATION")
                 val ok = gattServer?.notifyCharacteristicChanged(device, ch, false) ?: false
-                if (!ok) Log.w(TAG, "notify failed at seq=$seq")
+                if (ok) {
+                    Log.i(TAG, "streamNotifications: notifyCharacteristicChanged SUCCESS for seq=$seq")
+                } else {
+                    Log.w(TAG, "streamNotifications: notifyCharacteristicChanged FAILED for seq=$seq. gattServer null? ${gattServer == null}")
+                }
             } catch (se: SecurityException) {
                 Log.e(TAG, "notifyCharacteristicChanged SecurityException", se)
                 break
@@ -258,6 +298,7 @@ class BlePeripheralService : Service() {
             pos += len; seq += 1
             try { Thread.sleep(3) } catch (_: InterruptedException) {}
         }
+        Log.d(TAG, "streamNotifications: Finished streaming. Total packets sent=$seq")
     }
 
     private fun buildManufacturerPayload(): ByteArray {
