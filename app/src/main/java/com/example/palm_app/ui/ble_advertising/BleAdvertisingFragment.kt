@@ -13,36 +13,44 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.example.palm_app.R
-import java.nio.charset.StandardCharsets
 import com.example.palm_app.util.PermissionHelper
 import com.example.palm_app.ble.BlePeripheralService
 import com.example.palm_app.network.ApiService
 import com.example.palm_app.ui.home.HomeFragment
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import org.json.JSONException // Important for error handling
+import org.json.JSONException
 
 class BleAdvertisingFragment : Fragment() {
 
-
-    private var _binding: View? = null // Using View directly as we only need specific views
+    private var _binding: View? = null
     private lateinit var qrDataDisplayTextView: TextView
     private lateinit var advertiseButton: Button
     private val args: BleAdvertisingFragmentArgs by navArgs()
 
     private var isAdvertising = false
+    private var qrDataForGatt: String? = null
 
-    private var qrDataForGatt: String? = null // To store the qrContent
+    // Register once; reuse
+    private val permissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (PermissionHelper.allGranted(requireContext())) {
+            if (!isAdvertising) startPeripheralService(qrDataForGatt)
+        } else {
+            toast("Bluetooth permissions are required.")
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val view = inflater.inflate(R.layout.fragment_ble_advertising, container, false)
         _binding = view
         qrDataDisplayTextView = view.findViewById(R.id.qr_data_display_textview)
@@ -53,161 +61,174 @@ class BleAdvertisingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "BleAdvertisingFragment onViewCreated")
-        var identityData : String? = null
-        var gattData : String? = null
-        var token: String? = null
-        // retrieving data from shared preferences
-        val palmHash = getStringFromPrefs(Companion.KEY_PALM_HASH)
-        val userIdString = getStringFromPrefs(Companion.KEY_USERID)
-        Log.d(TAG, "palmHash: $palmHash")
-        Log.d(TAG, "userIdString: $userIdString")
-        // Fetch the BLE data needed to identify the user to the backend
-        if (userIdString != null) {
-            // fetch new identity data and token to be able to do second call
-            val userId = userIdString.toInt()
-            lifecycleScope.launch { // Coroutine for UI-related tasks after network call
-                identityData = fetchIdentityData(userId)
-            }
-            if (identityData != null) {
-                try {
-                    val jsonObject = JSONObject(identityData)
-                    token = jsonObject.getString("token")
-                    Log.d(TAG, "Jsonparse : Successfully extracted token: $token")
-                } catch (e: JSONException) {
-                    // Handle cases where identityData is not valid JSON,
-                    // or the "token" key doesn't exist, or it's not a string.
-                    Log.e("JSONParse", "Error parsing JSON or extracting token: ${e.message}")
-                    // Set token to null or handle the error as appropriate for your app
-                    token = null
-                }
-            } else {
-                Log.w("JSONParse", "identityData string is null, cannot extract token.")
-            }
-            // use token to get BLE data message and encryptedSymmetric
-            if (token != null) {
-                 lifecycleScope.launch {
-                     val result = ApiService.postBleId(token)
-                     withContext(Dispatchers.Main) { // Switch back to Main thread for UI updates
-                         when (result) {
-                             is ApiService.PostBleIdResult.Success -> {
-                                 val bleIdData = result.jsonResponse
-                                 Log.d(TAG, "Successfully posted BLE ID. Response: $bleIdData")
-                                 saveStringToPrefs(KEY_BLE_DATA, bleIdData)
-                                 gattData = mergeJsonStrings(bleIdData, palmHash)
-                             }
-                             is ApiService.PostBleIdResult.Error -> {
-                                 val errorMessage = result.errorMessage
-                                 Log.e(TAG, "Failed to post BLE ID: $errorMessage")
-                                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                             }
-                         }
-                     }
-                 }
+
+        // Kick off a single, structured pipeline
+        viewLifecycleOwner.lifecycleScope.launch {
+            val palmHash = getStringFromPrefs(KEY_PALM_HASH)
+            val userIdString = getStringFromPrefs(KEY_USERID)
+
+            if (userIdString.isNullOrBlank()) {
+                Log.w(TAG, "No userId in prefs; cannot fetch identity/ble data")
+                // Still allow manual start (will advertise with empty payload)
+                initUiAfterDataResolved(gattData = null)
+                return@launch
             }
 
+            val userId = userIdString.toIntOrNull()
+            if (userId == null) {
+                Log.e(TAG, "Invalid userId in prefs: $userIdString")
+                initUiAfterDataResolved(gattData = null)
+                return@launch
+            }
 
+            // 1) Fetch identity (IO thread)
+            val identityJson = fetchIdentityData(userId)
+            if (identityJson == null) {
+                initUiAfterDataResolved(gattData = null)
+                return@launch
+            }
+
+            // 2) Parse token (Main thread safe; cheap operation)
+            val token = extractToken(identityJson)
+            if (token.isNullOrBlank()) {
+                Log.e(TAG, "Token missing from identity response")
+                initUiAfterDataResolved(gattData = null)
+                return@launch
+            }
+
+            // 3) Post BLE ID to backend (IO)
+            val bleIdData = postBleId(token)
+            if (bleIdData == null) {
+                initUiAfterDataResolved(gattData = null)
+                return@launch
+            }
+
+            // Persist BLE data (IO)
+            withContext(Dispatchers.IO) {
+                saveStringToPrefs(KEY_BLE_DATA, bleIdData)
+            }
+
+            // 4) Merge with palm hash (on Main; cheap)
+            val gattData = mergeJsonStrings(bleIdData, palmHash)
+
+            // 5) Finalize UI and optionally start advertising
+            initUiAfterDataResolved(gattData)
         }
 
-        // 1) Show the QR/debug text like before
-        qrDataDisplayTextView.text = gattData
-        qrDataForGatt = gattData
-
-        // 2) Request permissions (Nearby Devices + Notifications on API 33+) using PermissionHelper
-        val permissionsLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { _ ->
-            if (PermissionHelper.allGranted(requireContext())) {
-                // Start the foreground BLE service headless
-                if (!isAdvertising) startPeripheralService(qrDataForGatt)
-
-            } else {
-                Toast.makeText(context, "Bluetooth permissions are required.", Toast.LENGTH_LONG).show()
-            }
-        }
-
-        if (!PermissionHelper.allGranted(requireContext())) {
-            permissionsLauncher.launch(PermissionHelper.required())
-        } else {
-            // Already granted earlier — just start service
-            if (!isAdvertising) startPeripheralService(qrDataForGatt)
-
-        }
-
-        // 3) Start/Stop button now toggles the service (no Fragment-level BLE anymore)
+        // Toggle button remains the same
         advertiseButton.setOnClickListener {
             if (isAdvertising) {
                 stopPeripheralService()
             } else {
                 if (PermissionHelper.allGranted(requireContext())) {
-                    if (!isAdvertising) startPeripheralService(qrDataForGatt)
-
+                    startPeripheralService(qrDataForGatt)
                 } else {
                     permissionsLauncher.launch(PermissionHelper.required())
                 }
             }
         }
-
-        // 4) Update UI once
-        updateButtonUI()
     }
 
-    private fun mergeJsonStrings(jsonString1: String?, jsonString2: String?): String? {
-        val mergedObject = JSONObject()
+    /**
+     * Called once the sequential pipeline above completes (success or fail).
+     * Updates UI and handles permission/start logic without racing async state.
+     */
+    private fun initUiAfterDataResolved(gattData: String?) {
+        if (!isAdded || view == null) return
+        qrDataForGatt = gattData
+        qrDataDisplayTextView.text = gattData
+        updateButtonUI()
 
-        // Attempt to merge jsonString1
-        if (!jsonString1.isNullOrEmpty()) {
-            try {
-                val jsonObject1 = JSONObject(jsonString1)
-                val keys1 = jsonObject1.keys()
-                while (keys1.hasNext()) {
-                    val key = keys1.next()
-                    mergedObject.put(key, jsonObject1.get(key))
-                }
-            } catch (e: JSONException) {
-                Log.e(TAG, "Error parsing jsonString1 for merge ('$jsonString1'): ${e.message}")
-                // If strict merging is required, you might return null here or throw an exception
+        // Request permissions or start immediately if already granted
+        if (!PermissionHelper.allGranted(requireContext())) {
+            permissionsLauncher.launch(PermissionHelper.required())
+        } else if (!isAdvertising) {
+            startPeripheralService(qrDataForGatt)
+        }
+    }
+
+    /** IO-bound identity fetch; clean suspend with no UI work inside */
+    private suspend fun fetchIdentityData(userId: Int): String? = withContext(Dispatchers.IO) {
+        when (val result = ApiService.fetchIdentity(userId)) {
+            is ApiService.FetchIdentityResult.Success -> {
+                val json = result.jsonResponse
+                // Save in prefs (still IO)
+                saveStringToPrefs(KEY_ID_RESPONSE, json)
+                Log.d(TAG, "Fetched identity for userId=$userId")
+                json
+            }
+            is ApiService.FetchIdentityResult.Error -> {
+                Log.e(TAG, "fetchIdentity error: ${result.errorMessage}")
+                // Main-thread toast
+                withContext(Dispatchers.Main) { toast(result.errorMessage) }
+                null
             }
         }
+    }
 
-        // Attempt to merge jsonString2 (will overwrite common keys from jsonString1)
-        if (!jsonString2.isNullOrEmpty()) {
-            try {
-                val jsonObject2 = JSONObject(jsonString2)
-                val keys2 = jsonObject2.keys()
-                while (keys2.hasNext()) {
-                    val key = keys2.next()
-                    mergedObject.put(key, jsonObject2.get(key))
-                }
-            } catch (e: JSONException) {
-                Log.e(TAG, "Error parsing jsonString2 for merge ('$jsonString2'): ${e.message}")
-                // If strict merging is required, you might return null here or throw an exception
+    /** IO-bound BLE ID post; returns server JSON or null. */
+    private suspend fun postBleId(token: String): String? = withContext(Dispatchers.IO) {
+        when (val result = ApiService.postBleId(token)) {
+            is ApiService.PostBleIdResult.Success -> {
+                Log.d(TAG, "postBleId ok")
+                result.jsonResponse
+            }
+            is ApiService.PostBleIdResult.Error -> {
+                Log.e(TAG, "postBleId error: ${result.errorMessage}")
+                withContext(Dispatchers.Main) { toast(result.errorMessage) }
+                null
             }
         }
+    }
 
-        // If the merged object is empty (e.g., both inputs were null, empty, or invalid JSON), return null.
-        return if (mergedObject.length() == 0) {
+    private fun extractToken(identityJson: String): String? =
+        try {
+            JSONObject(identityJson).optString("token", null).also {
+                Log.d(TAG, "Extracted token: ${it?.let { "****" } ?: "null"}")
+            }
+        } catch (e: JSONException) {
+            Log.e(TAG, "Token parse error: ${e.message}")
             null
-        } else {
-            mergedObject.toString()
         }
+
+    private fun mergeJsonStrings(jsonString1: String?, jsonString2: String?): String? {
+        val merged = JSONObject()
+        if (!jsonString1.isNullOrBlank()) {
+            try {
+                val o1 = JSONObject(jsonString1)
+                o1.keys().forEach { k -> merged.put(k, o1.get(k)) }
+            } catch (e: JSONException) {
+                Log.e(TAG, "merge json1 error: ${e.message}")
+            }
+        }
+        if (!jsonString2.isNullOrBlank()) {
+            try {
+                val o2 = JSONObject(jsonString2)
+                o2.keys().forEach { k -> merged.put(k, o2.get(k)) }
+            } catch (e: JSONException) {
+                Log.e(TAG, "merge json2 error: ${e.message}")
+            }
+        }
+        return if (merged.length() == 0) null else merged.toString()
     }
 
     private fun startPeripheralService(payloadStr: String?) {
-        val bytes = (payloadStr ?: "").toByteArray(StandardCharsets.UTF_8)
+        val bytes = (payloadStr ?: "").toByteArray(Charsets.UTF_8)
         BlePeripheralService.start(requireContext(), bytes)
-        isAdvertising = true  // reuse your flag to mean "service running"
+        isAdvertising = true
         updateButtonUI()
-        Toast.makeText(context, "BLE peripheral running in background", Toast.LENGTH_SHORT).show()
+        toast("BLE peripheral running in background")
     }
 
     private fun stopPeripheralService() {
         BlePeripheralService.stop(requireContext())
         isAdvertising = false
         updateButtonUI()
-        Toast.makeText(context, "BLE peripheral stopped", Toast.LENGTH_SHORT).show()
+        toast("BLE peripheral stopped")
     }
 
     private fun updateButtonUI() {
+        if (!isAdded) return
         if (isAdvertising) {
             advertiseButton.text = getString(R.string.stop_advertising_text)
             advertiseButton.setBackgroundColor(Color.RED)
@@ -217,64 +238,33 @@ class BleAdvertisingFragment : Fragment() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        // Consider stopping advertising here if fragment is not visible to save resources,
-        // but ensure it doesn't conflict with ongoing connections if desired.
-        // if (isAdvertising) {
-        //    stopBleAdvertising()
-        // }
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         Log.d(TAG, "onDestroyView called.")
         _binding = null
     }
 
-    private suspend fun fetchIdentityData(userId: Int): String? {
-        // Call the shared ApiService
-        val result = ApiService.fetchIdentity(userId)
-        var jsonResponse: String? = null
-
-        // Handle the result on the Main thread for UI operations
-        withContext(Dispatchers.Main) {
-            when (result) {
-                is ApiService.FetchIdentityResult.Success -> {
-                    jsonResponse = result.jsonResponse
-                    Log.d(TAG, "Successfully fetched identity for User ID $userId: $jsonResponse")
-                    // Save the API JSON (identity) to SharedPreferences
-                    saveStringToPrefs(KEY_ID_RESPONSE, jsonResponse)
-                }
-                is ApiService.FetchIdentityResult.Error -> {
-                    val errorMessage = result.errorMessage
-                    Log.e(TAG, "Failed to fetch identity for User ID $userId: $errorMessage")
-                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-        return jsonResponse
-    }
+    // ---- Prefs & utils -------------------------------------------------------
 
     private fun saveStringToPrefs(key: String, value: String) {
-        val sharedPreferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            putString(key, value)
-            apply()
-        }
+        // Prefs write is cheap but still push to IO for correctness on older devices
+        // Caller ensures proper dispatcher.
+        val sp = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().putString(key, value).apply()
         Log.d(TAG, "Saved string to SharedPreferences with key '$key'")
     }
 
     private fun getStringFromPrefs(key: String): String? {
-        val sharedPreferences = requireContext().getSharedPreferences(HomeFragment.Companion.PREFS_NAME, Context.MODE_PRIVATE)
-        val value = sharedPreferences.getString(key, null)
-        if (value != null) {
-            Log.d(TAG, "Retrieved string from SharedPreferences for key '$key'")
-        } else {
-            Log.d(TAG, "No string found in SharedPreferences for key '$key'")
+        val sp = requireContext().getSharedPreferences(HomeFragment.PREFS_NAME, Context.MODE_PRIVATE)
+        return sp.getString(key, null).also {
+            Log.d(TAG, if (it != null) "Prefs hit for '$key'" else "Prefs miss for '$key'")
         }
-        return value
     }
+
+    private fun toast(msg: String) {
+        if (isAdded) Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+    }
+
     companion object {
         private const val TAG = "BleAdvertisingFragment"
         const val PREFS_NAME = "PalmAppPrefs"

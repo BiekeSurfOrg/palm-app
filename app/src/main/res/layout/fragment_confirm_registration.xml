@@ -8,12 +8,7 @@
     android:gravity="center_horizontal"
     tools:context=".ui.confirm_registration.ConfirmRegistrationFragment">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/menu_confirm_registration"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
 
     <androidx.camera.view.PreviewView
         android:id="@+id/camera_preview"
@@ -42,13 +37,22 @@
     android:focusable="true"
     android:clickable="true" />
 
-
     <com.google.android.material.button.MaterialButton
-        style="@style/Widget.Material3.Button.OutlinedButton"
         android:id="@+id/next_button_confirm"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Next" />
+        android:backgroundTint="@android:color/holo_blue_dark"
+        android:paddingStart="48dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="48dp"
+        android:paddingBottom="24dp"
+        android:text="NEXT"
+        android:textSize="24sp"
+        app:cornerRadius="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.66" />
 
 </LinearLayout>

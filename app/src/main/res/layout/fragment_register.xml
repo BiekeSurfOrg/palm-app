@@ -9,13 +9,7 @@
     android:padding="16dp"
     tools:context=".ui.register.RegisterFragment">
 
-    <TextView
-        android:id="@+id/register_title_textview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/menu_register"
-        android:textSize="24sp"
-        android:layout_marginBottom="16dp"/>
+
 
     <TextView
         android:id="@+id/json_data_textview"
@@ -37,18 +31,42 @@
         android:contentDescription="QR Code"
         android:background="#e0e0e0"
         tools:srcCompat="@tools:sample/avatars" /> <!-- Placeholder image -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/next_button_register"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@android:color/holo_blue_dark"
+        android:paddingStart="48dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="48dp"
+        android:paddingBottom="24dp"
+        android:text="NEXT"
+        android:textSize="24sp"
+        app:cornerRadius="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.66" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/resend_button"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="Resend" />
+        android:backgroundTint="@android:color/holo_red_dark"
+        android:paddingStart="48dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="48dp"
+        android:paddingBottom="24dp"
+        android:text="RESEND"
+        android:textSize="24sp"
+        app:cornerRadius="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.66" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/next_button_register"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Next" />
+
 
 </LinearLayout>
