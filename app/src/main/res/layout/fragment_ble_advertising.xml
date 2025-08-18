@@ -26,14 +26,20 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.66" />
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:layout_marginBottom="24dp">
 
-    <TextView
-        android:id="@+id/qr_data_display_textview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Waiting for QR data..."
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:layout_marginBottom="24dp"/>
+        <TextView
+            android:id="@+id/qr_data_display_textview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Waiting for QR data..."
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+    </ScrollView>
     
 
 </LinearLayout>

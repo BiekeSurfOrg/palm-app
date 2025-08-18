@@ -18,16 +18,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers // Ensured Dispatchers is imported for withContext(Dispatchers.Main)
 
-// Removed: import okhttp3.OkHttpClient
-// Removed: import okhttp3.Request
-// Removed: import java.io.IOException - ApiService handles this
-
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-
-    // Removed: private val client = OkHttpClient() - ApiService handles this
 
     companion object {
         const val PREFS_NAME = "PalmAppPrefs"
@@ -88,36 +82,42 @@ class HomeFragment : Fragment() {
                 Log.d("HomeFragment", "Saved User ID '$userIdString' to SharedPreferences with key '$KEY_USERID'")
             }
 
-            lifecycleScope.launch { // Coroutine for UI-related tasks after network call
+            lifecycleScope.launch { 
                 fetchDataAndNavigate(userId)
             }
         }
 
         binding.restartButton.setOnClickListener {
-            val defaultUserId = "1"
-            binding.userIdEditText.setText(defaultUserId)
-            saveStringToPrefs(KEY_USERID, defaultUserId)
-            Toast.makeText(context, "Restart: User ID reset to 1.", Toast.LENGTH_SHORT).show()
-            clearStringFromPrefs(KEY_ID_RESPONSE)
-            Log.d("HomeFragment", "Cleared API response for key '$KEY_ID_RESPONSE' on restart.")
-            Log.d("HomeFragment", "Saved User ID '$defaultUserId' to SharedPreferences with key '$KEY_USERID' on restart.")
+            performRestartActions() // Logic moved to its own method
         }
     }
 
-    private suspend fun fetchDataAndNavigate(userId: Int) {
-        // Call the shared ApiService
-        val result = ApiService.fetchIdentity(userId)
+    fun performRestartActions() {
+        if (_binding == null || !isAdded || view == null) {
+            Log.e("HomeFragment", "performRestartActions called when fragment is not in a valid state.")
+            return
+        }
+        val defaultUserId = "1"
+        binding.userIdEditText.setText(defaultUserId)
+        saveStringToPrefs(KEY_USERID, defaultUserId)
+        Toast.makeText(requireContext(), "Restart: User ID reset to 1. All data cleared.", Toast.LENGTH_LONG).show()
+        clearStringFromPrefs(KEY_ID_RESPONSE)
+        clearStringFromPrefs(KEY_BLE_DATA)
+        clearStringFromPrefs(KEY_PALM_HASH)
+        Log.d("HomeFragment", "Cleared API response for key '$KEY_ID_RESPONSE' on restart.")
+        Log.d("HomeFragment", "Cleared BLE data for key '$KEY_BLE_DATA' on restart.")
+        Log.d("HomeFragment", "Cleared Palm Hash for key '$KEY_PALM_HASH' on restart.")
+        Log.d("HomeFragment", "Saved User ID '$defaultUserId' to SharedPreferences with key '$KEY_USERID' on restart.")
+    }
 
-        // Handle the result on the Main thread for UI operations
+    private suspend fun fetchDataAndNavigate(userId: Int) {
+        val result = ApiService.fetchIdentity(userId)
         withContext(Dispatchers.Main) {
             when (result) {
                 is ApiService.FetchIdentityResult.Success -> {
                     val jsonResponse = result.jsonResponse
                     Log.d("HomeFragment", "Successfully fetched identity for User ID $userId: $jsonResponse")
-                    // Save the API JSON (identity) to SharedPreferences
                     saveStringToPrefs(KEY_ID_RESPONSE, jsonResponse)
-
-                    // Navigate
                     val action = HomeFragmentDirections.actionNavHomeToNavRegister(jsonResponse)
                     findNavController().navigate(action)
                 }
