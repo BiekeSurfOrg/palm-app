@@ -104,12 +104,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Include your curved blue footer if it's specific to this screen -->
-    <!-- Or if it's global, it might be in activity_main.xml -->
-    <include
-        layout="@layout/footer_curved_actions_view_system"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/footer_height"
-        android:layout_gravity="bottom"/>
+    <!-- The include tag for footer_curved_actions_view_system was here and is now removed -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
