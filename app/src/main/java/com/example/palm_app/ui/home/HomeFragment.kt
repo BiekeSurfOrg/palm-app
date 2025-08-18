@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.palm_app.databinding.FragmentHomeBinding
 import com.example.palm_app.network.ApiService // Added import for ApiService
+import com.example.palm_app.ble.BlePeripheralService // << IMPORT ADDED HERE
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers // Ensured Dispatchers is imported for withContext(Dispatchers.Main)
@@ -100,7 +101,11 @@ class HomeFragment : Fragment() {
         val defaultUserId = "1"
         binding.userIdEditText.setText(defaultUserId)
         saveStringToPrefs(KEY_USERID, defaultUserId)
-        Toast.makeText(requireContext(), "Restart: User ID reset to 1. All data cleared.", Toast.LENGTH_LONG).show()
+
+        // Stop BLE peripheral service
+        BlePeripheralService.stop(requireContext())
+        Log.d("HomeFragment", "Stopped BLE Peripheral Service on restart.")
+
         clearStringFromPrefs(KEY_ID_RESPONSE)
         clearStringFromPrefs(KEY_BLE_DATA)
         clearStringFromPrefs(KEY_PALM_HASH)
@@ -108,6 +113,7 @@ class HomeFragment : Fragment() {
         Log.d("HomeFragment", "Cleared BLE data for key '$KEY_BLE_DATA' on restart.")
         Log.d("HomeFragment", "Cleared Palm Hash for key '$KEY_PALM_HASH' on restart.")
         Log.d("HomeFragment", "Saved User ID '$defaultUserId' to SharedPreferences with key '$KEY_USERID' on restart.")
+        Toast.makeText(requireContext(), "Restart: User ID reset to 1. All data cleared. BLE service stopped.", Toast.LENGTH_LONG).show()
     }
 
     private suspend fun fetchDataAndNavigate(userId: Int) {
