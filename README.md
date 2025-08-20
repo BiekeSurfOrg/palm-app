@@ -1,6 +1,6 @@
 # Palm App
 
-This is an Android application built with Kotlin and Jetpack Navigation Component. It demonstrates basic navigation between fragments, user input validation, and the use of Safe Args for passing data.
+This is an Android application built with Kotlin and Jetpack Navigation Component. It demonstrates basic navigation between fragments, user input validation, the use of Safe Args for passing data, and Bluetooth Low Energy (BLE) functionalities.
 
 ## Features
 
@@ -37,13 +37,11 @@ To set up and run this project on your local machine, follow these steps:
 ### Steps
 
 1.  **Clone the Repository**:
-
     ```bash
     git clone https://github.com/your-repo/palm-app.git
     cd palm-app
     ```
-
-    _(Note: Replace `https://github.com/your-repo/palm-app.git` with the actual repository URL if available.)_
+    *(Note: Replace `https://github.com/your-repo/palm-app.git` with the actual repository URL if available.)*
 
 2.  **Open in Android Studio**:
     Open the `palm-app` project in Android Studio. Android Studio should automatically detect the Gradle project.
@@ -61,11 +59,19 @@ To set up and run this project on your local machine, follow these steps:
 
     Once a device or emulator is ready, select it from the target device dropdown in the toolbar and click the green 'Run' button (triangle icon) to install and launch the app.
 
+## Continuous Integration (CI)
+
+This project includes a GitHub Actions workflow for continuous integration. The workflow is defined in `.github/workflows/android_build.yml` and is configured to:
+
+*   Build the Android application on push and pull request events.
+*   Run unit tests.
+
 ## Project Structure Highlights
 
-- `app/build.gradle.kts`: Module-level Gradle build file, where dependencies and Android-specific configurations are defined, including the Safe Args plugin.
-- `app/src/main/java/com/example/palm_app/`: Contains the Kotlin source code for the application's activities and fragments.
-- `app/src/main/res/navigation/mobile_navigation.xml`: The navigation graph defining the app's navigation flow and arguments for Safe Args.
-- `app/src/main/res/layout/`: Contains the XML layout files for the user interface.
+*   `app/build.gradle.kts`: Module-level Gradle build file, where dependencies and Android-specific configurations are defined, including the Safe Args plugin.
+*   `app/src/main/java/com/example/palm_app/`: Contains the Kotlin source code for the application's activities and fragments.
+*   `app/src/main/res/navigation/mobile_navigation.xml`: The navigation graph defining the app's navigation flow and arguments for Safe Args.
+*   `app/src/main/res/layout/`: Contains the XML layout files for the user interface.
+*   `.github/workflows/android_build.yml`: GitHub Actions workflow for CI/CD.
 
 Feel free to explore the code and modify it as needed.
