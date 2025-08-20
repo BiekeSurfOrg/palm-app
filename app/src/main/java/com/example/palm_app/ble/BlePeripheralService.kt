@@ -21,12 +21,18 @@ import com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment // Import 
 
 class BlePeripheralService : Service() {
 
+    private var lastConnectedDeviceAddress: String? = null
+
     companion object {
         private const val TAG = "BlePeripheralService"
         const val ACTION_START = "START"
         const val ACTION_STOP  = "STOP"
         const val ACTION_UPDATE_PAYLOAD = "UPDATE_PAYLOAD"
         const val EXTRA_PAYLOAD = "payload" // ByteArray or String
+
+        const val ACTION_REQUEST_CONNECTION_STATUS = "com.example.palm_app.REQUEST_CONNECTION_STATUS"
+        const val ACTION_MANUFACTURER_DATA_READY = "com.example.palm_app.MANUFACTURER_DATA_READY"
+        const val EXTRA_MANUFACTURER_DATA_STRING = "com.example.palm_app.EXTRA_MANUFACTURER_DATA_STRING"
 
         const val MANUFACTURER_ID = 0xFFFF
         const val ADVERTISING_DATA = "PALMKI"
@@ -82,8 +88,27 @@ class BlePeripheralService : Service() {
                 Log.i(TAG, "Payload updated: ${payload.size} bytes")
             }
             ACTION_STOP -> stopSelfSafely()
+            ACTION_REQUEST_CONNECTION_STATUS -> {
+                Log.i(TAG, "Received ACTION_REQUEST_CONNECTION_STATUS")
+                if (lastConnectedDeviceAddress != null) {
+                    val statusIntent = Intent(BleAdvertisingFragment.ACTION_DEVICE_CONNECTED)
+                    broadcast(BleAdvertisingFragment.EXTRA_DEVICE_ADDRESS, lastConnectedDeviceAddress)
+                    Log.i(TAG, "Sent ACTION_DEVICE_CONNECTED for $lastConnectedDeviceAddress")
+                } else {
+                    broadcast(BleAdvertisingFragment.ACTION_DEVICE_DISCONNECTED)
+                    Log.i(TAG, "Sent ACTION_DEVICE_DISCONNECTED (no device connected)")
+                }
+            }
         }
         return START_STICKY
+    }
+
+    private fun broadcast(action: String, address: String? = null) {
+        val i = Intent(action).setPackage(packageName)
+        if (address != null) {
+            i.putExtra(BleAdvertisingFragment.EXTRA_DEVICE_ADDRESS, address)
+        }
+        sendBroadcast(i)
     }
 
     override fun onDestroy() {
@@ -147,9 +172,10 @@ class BlePeripheralService : Service() {
             .build()
 
         // --- Primary advertising data (keep it light!) ---
+        val manufacturerPayload = buildManufacturerPayload()
         val primary = AdvertiseData.Builder()
             .setIncludeDeviceName(false) // saves bytes
-            .addManufacturerData(MANUFACTURER_ID, buildManufacturerPayload())
+            .addManufacturerData(MANUFACTURER_ID, manufacturerPayload)
             // Do NOT add the 128-bit service UUID here to avoid hitting 31B limit.
             .build()
 
@@ -159,6 +185,14 @@ class BlePeripheralService : Service() {
             // Optionally include the device name if you want:
             // .setIncludeDeviceName(true)
             .build()
+
+        val manufacturerPayloadString = manufacturerPayload.joinToString(separator = ":") { String.format("%02X", it) }
+        val dataReadyIntent = Intent(ACTION_MANUFACTURER_DATA_READY).setPackage(packageName)
+        dataReadyIntent.putExtra(BleAdvertisingFragment.EXTRA_MANUFACTURER_DATA_STRING, manufacturerPayloadString)
+        sendBroadcast(dataReadyIntent)
+
+        //broadcast(BleAdvertisingFragment.ACTION_MANUFACTURER_DATA_READY, manufacturerPayloadString)
+        Log.d(TAG, "Sent ACTION_MANUFACTURER_DATA_READY with payload: $manufacturerPayloadString")
 
         try {
             advertiser?.startAdvertising(settings, primary, scanResp, adCallback)
@@ -183,13 +217,13 @@ class BlePeripheralService : Service() {
             Log.i(TAG, "Conn state ${device.address}: $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.i(TAG, "Device connected: ${device.address}")
-                val intent = Intent(BleAdvertisingFragment.ACTION_DEVICE_CONNECTED)
-                intent.putExtra(BleAdvertisingFragment.EXTRA_DEVICE_ADDRESS, device.address)
-                sendBroadcast(intent)
+                lastConnectedDeviceAddress = device.address
+                broadcast(BleAdvertisingFragment.EXTRA_DEVICE_ADDRESS, device.address)
+                broadcast(BleAdvertisingFragment.ACTION_DEVICE_CONNECTED, lastConnectedDeviceAddress)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.i(TAG, "Device disconnected: ${device.address}")
-                val intent = Intent(BleAdvertisingFragment.ACTION_DEVICE_DISCONNECTED)
-                sendBroadcast(intent)
+                lastConnectedDeviceAddress = null
+                broadcast(BleAdvertisingFragment.ACTION_DEVICE_DISCONNECTED)
             }
         }
 

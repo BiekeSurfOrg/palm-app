@@ -37,7 +37,10 @@ class BleAdvertisingFragment : Fragment() {
     private lateinit var advertiseButton: Button
     private lateinit var connectedDeviceAddressTextView: TextView
     private lateinit var userIdTextView: TextView // Added for User ID
+    private lateinit var manufacturerPayloadTextView: TextView
+    private lateinit var manufacturerPayloadASCIITextView: TextView
     //private val args: BleAdvertisingFragmentArgs by navArgs()
+    private var receiverToken: Intent? = null
 
     private var isAdvertising = false
     private var qrDataForGatt: String? = null
@@ -55,13 +58,72 @@ class BleAdvertisingFragment : Fragment() {
 
     private val gattConnectionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(TAG, "gattConnectionReceiver onReceive - Action: ${intent?.action}")
             when (intent?.action) {
-                ACTION_DEVICE_CONNECTED -> {
+//                ACTION_ADVERTISING_STARTED -> {
+//                    val displayId = intent.getStringExtra(EXTRA_DISPLAY_ID) ?: "—"
+//                    connectedDeviceAddressTextView.text = "Advertising • ID: $displayId"
+//                    Log.d(TAG, "Advertising started, displayId=$displayId")
+//                    Log.d(TAG, "ACTION_ADVERTISING_STARTED")
+//                    val deviceAddress = intent.getStringExtra(ACTION_ADVERTISING_STARTED)
+//                    Log.d(TAG, "ACTION_ADVERTISING_STARTED received, address: $deviceAddress")
+//                    connectedDeviceAddressTextView.text = "Device: ${deviceAddress ?: "None"}"
+//                }
+//                ACTION_DEVICE_CONNECTED -> {
+//                    Log.d(TAG, "ACTION_DEVICE_CONNECTED")
+//                    val deviceAddress = intent.getStringExtra(ACTION_DEVICE_CONNECTED)
+//                    Log.d(TAG, "ACTION_DEVICE_CONNECTED received, address: $deviceAddress")
+//                    connectedDeviceAddressTextView.text = "Device: ${deviceAddress ?: "None"}"
+//                }
+//                ACTION_DEVICE_DISCONNECTED -> {
+//                    Log.d(TAG, "ACTION_DEVICE_DISCONNECTED")
+//                    val deviceAddress = intent.getStringExtra(ACTION_DEVICE_DISCONNECTED)
+//                    connectedDeviceAddressTextView.text = "Device: ${deviceAddress ?: "None"}"
+//                    Log.d(TAG, "ACTION_DEVICE_DISCONNECTED $deviceAddress received")
+//                    //connectedDeviceAddressTextView.text = "Device: None"
+//                }
+                EXTRA_DEVICE_ADDRESS -> {
+                    Log.d(TAG, "EXTRA_DEVICE_ADDRESS")
                     val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
                     connectedDeviceAddressTextView.text = "Device: ${deviceAddress ?: "None"}"
+                    Log.d(TAG, "EXTRA_DEVICE_ADDRESS $deviceAddress received")
+                    //connectedDeviceAddressTextView.text = "Device: None"
                 }
-                ACTION_DEVICE_DISCONNECTED -> {
-                    connectedDeviceAddressTextView.text = "Device: None"
+                ACTION_MANUFACTURER_DATA_READY -> {
+                    val payload = intent.getStringExtra(EXTRA_MANUFACTURER_DATA_STRING)
+                    Log.d(TAG, "ACTION_MANUFACTURER_DATA_READY received, payload: $payload")
+                    manufacturerPayloadTextView.text = "Manufacturer Payload: ${payload ?: "N/A"}"
+                    // payload transform to : "Manufacturer Data ASCII: Version: 1, Tag: PALMKI, Counter: 53975"
+                    manufacturerPayloadASCIITextView.text = if (payload != null) {
+                        val bytesStr = payload.split(":")
+                        if (bytesStr.size >= 9) { // Version (1) + Tag (6) + Counter (2) = 9 bytes
+                            try {
+                                val version = bytesStr[0].toInt(16)
+                                val tag = bytesStr.subList(1, 7).joinToString("") {
+                                    it.toInt(16).toChar().toString()
+                                }
+                                // Counter is 2 bytes, Little Endian (LSB first in mfg_bytes[7], then MSB in mfg_bytes[8])
+                                // So, bytesStr[7] is LSB_hex, bytesStr[8] is MSB_hex
+                                val counterLsbValue = bytesStr[7].toInt(16)
+                                val counterMsbValue = bytesStr[8].toInt(16)
+                                val counter = (counterMsbValue shl 8) or counterLsbValue // Correct calculation: (MSB * 256) + LSB
+
+
+                                "Manufacturer Data ASCII: Version: $version, Tag: $tag, Counter: $counter"
+                            } catch (e: NumberFormatException) {
+                                Log.e(TAG, "Error parsing manufacturer payload hex components: $payload", e)
+                                "Manufacturer Data ASCII: Format Error"
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error processing manufacturer payload: $payload", e)
+                                "Manufacturer Data ASCII: Processing Error"
+                            }
+                        } else {
+                            Log.w(TAG, "Manufacturer payload too short for parsing: $payload")
+                            "Manufacturer Data ASCII: Payload too short"
+                        }
+                    } else {
+                        "Manufacturer Data ASCII: N/A"
+                    }
                 }
             }
         }
@@ -77,6 +139,8 @@ class BleAdvertisingFragment : Fragment() {
         advertiseButton = view.findViewById(R.id.advertise_button)
         connectedDeviceAddressTextView = view.findViewById(R.id.connectedDeviceAddressTextView)
         userIdTextView = view.findViewById(R.id.userIdTextView) // Initialize userIdTextView
+        manufacturerPayloadTextView = view.findViewById(R.id.manufacturerPayloadTextView) // Initialize connectedDeviceManufacturerPayload
+        manufacturerPayloadASCIITextView = view.findViewById(R.id.manufacturerPayloadASCIITextView) // Initialize connectedDeviceManufacturerPayloadASCII
         return view
     }
 
@@ -156,17 +220,50 @@ class BleAdvertisingFragment : Fragment() {
         }
     }
 
+
     override fun onResume() {
         super.onResume()
-        val intentFilter = IntentFilter().apply {
+        Log.d(TAG, "onResume called")
+        val filter = IntentFilter().apply {
             addAction(ACTION_DEVICE_CONNECTED)
             addAction(ACTION_DEVICE_DISCONNECTED)
+            addAction(ACTION_ADVERTISING_STARTED)
+            addAction(EXTRA_DEVICE_ADDRESS)
+            addAction(ACTION_MANUFACTURER_DATA_READY)
         }
-        requireActivity().registerReceiver(gattConnectionReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+        receiverToken = androidx.core.content.ContextCompat.registerReceiver(
+            requireContext(),
+            gattConnectionReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        // ask the service for the current status (same as you do now)
+        val i = Intent(requireContext(), BlePeripheralService::class.java).apply {
+            action = ACTION_REQUEST_CONNECTION_STATUS
+        }
+        requireContext().startService(i)
+        Log.d(TAG, "ACTION_REQUEST_CONNECTION_STATUS command sent to service")
     }
+
+//    override fun onResume() {
+//        super.onResume()
+//        Log.d(TAG, "onResume called")
+//        val intentFilter = IntentFilter().apply {
+//            addAction(ACTION_DEVICE_CONNECTED)
+//            addAction(ACTION_DEVICE_DISCONNECTED)
+//        }
+//        requireActivity().registerReceiver(gattConnectionReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+//        // Changed to startService:
+//        val requestStatusIntent = Intent(requireContext(), BlePeripheralService::class.java)
+//        requestStatusIntent.action = ACTION_REQUEST_CONNECTION_STATUS // Ensure this constant matches in BlePeripheralService
+//        requireContext().startService(requestStatusIntent)
+//        Log.d(TAG, "ACTION_REQUEST_CONNECTION_STATUS command sent to service") // Log message updated
+//    }
+
 
     override fun onPause() {
         super.onPause()
+        Log.d(TAG, "onPause called")
         requireActivity().unregisterReceiver(gattConnectionReceiver)
     }
 
@@ -317,5 +414,13 @@ class BleAdvertisingFragment : Fragment() {
         const val ACTION_DEVICE_CONNECTED = "com.example.palm_app.DEVICE_CONNECTED"
         const val ACTION_DEVICE_DISCONNECTED = "com.example.palm_app.DEVICE_DISCONNECTED"
         const val EXTRA_DEVICE_ADDRESS = "DEVICE_ADDRESS"
+        const val ACTION_REQUEST_CONNECTION_STATUS = "com.example.palm_app.REQUEST_CONNECTION_STATUS"
+        const val ACTION_ADVERTISING_STARTED = "com.example.palm_app.ADVERTISING_STARTED"
+        const val EXTRA_DISPLAY_ID = "extra_display_id"
+
+        const val ACTION_MANUFACTURER_DATA_READY = "com.example.palm_app.MANUFACTURER_DATA_READY"
+        const val EXTRA_MANUFACTURER_DATA_STRING = "com.example.palm_app.EXTRA_MANUFACTURER_DATA_STRING"
+
     }
 }
+

@@ -36,6 +36,20 @@
             android:layout_height="wrap_content"
             android:text="User ID: Loading..."
             android:textAppearance="?attr/textAppearanceBody2" />
+        <TextView
+            android:id="@+id/manufacturerPayloadTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Payload: None"
+            android:textAppearance="?attr/textAppearanceBody2" />
+        <TextView
+            android:id="@+id/manufacturerPayloadASCIITextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Payload: None"
+            android:textAppearance="?attr/textAppearanceBody2" />
 
         <TextView
             android:id="@+id/connectedDeviceAddressTextView"
