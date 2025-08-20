@@ -17,6 +17,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
+import com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment // Import for constants
 
 class BlePeripheralService : Service() {
 
@@ -180,6 +181,16 @@ class BlePeripheralService : Service() {
     private val serverCb = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             Log.i(TAG, "Conn state ${device.address}: $newState")
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                Log.i(TAG, "Device connected: ${device.address}")
+                val intent = Intent(BleAdvertisingFragment.ACTION_DEVICE_CONNECTED)
+                intent.putExtra(BleAdvertisingFragment.EXTRA_DEVICE_ADDRESS, device.address)
+                sendBroadcast(intent)
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                Log.i(TAG, "Device disconnected: ${device.address}")
+                val intent = Intent(BleAdvertisingFragment.ACTION_DEVICE_DISCONNECTED)
+                sendBroadcast(intent)
+            }
         }
 
         override fun onMtuChanged(device: BluetoothDevice, mtu: Int) {

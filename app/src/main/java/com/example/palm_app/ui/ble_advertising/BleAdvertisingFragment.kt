@@ -1,6 +1,9 @@
 package com.example.palm_app.ui.ble_advertising
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -11,6 +14,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.semantics.text
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
@@ -31,7 +35,9 @@ class BleAdvertisingFragment : Fragment() {
     private var _binding: View? = null
     private lateinit var qrDataDisplayTextView: TextView
     private lateinit var advertiseButton: Button
-    private val args: BleAdvertisingFragmentArgs by navArgs()
+    private lateinit var connectedDeviceAddressTextView: TextView
+    private lateinit var userIdTextView: TextView // Added for User ID
+    //private val args: BleAdvertisingFragmentArgs by navArgs()
 
     private var isAdvertising = false
     private var qrDataForGatt: String? = null
@@ -47,6 +53,20 @@ class BleAdvertisingFragment : Fragment() {
         }
     }
 
+    private val gattConnectionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_DEVICE_CONNECTED -> {
+                    val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
+                    connectedDeviceAddressTextView.text = "Device: ${deviceAddress ?: "None"}"
+                }
+                ACTION_DEVICE_DISCONNECTED -> {
+                    connectedDeviceAddressTextView.text = "Device: None"
+                }
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -55,12 +75,16 @@ class BleAdvertisingFragment : Fragment() {
         _binding = view
         qrDataDisplayTextView = view.findViewById(R.id.qr_data_display_textview)
         advertiseButton = view.findViewById(R.id.advertise_button)
+        connectedDeviceAddressTextView = view.findViewById(R.id.connectedDeviceAddressTextView)
+        userIdTextView = view.findViewById(R.id.userIdTextView) // Initialize userIdTextView
         return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "BleAdvertisingFragment onViewCreated")
+
+        connectedDeviceAddressTextView.text = "Device: None" // Initialize connected device text
 
         // Kick off a single, structured pipeline
         viewLifecycleOwner.lifecycleScope.launch {
@@ -69,7 +93,7 @@ class BleAdvertisingFragment : Fragment() {
 
             if (userIdString.isNullOrBlank()) {
                 Log.w(TAG, "No userId in prefs; cannot fetch identity/ble data")
-                // Still allow manual start (will advertise with empty payload)
+                userIdTextView.text = "User ID: N/A" // Update TextView
                 initUiAfterDataResolved(gattData = null)
                 return@launch
             }
@@ -77,9 +101,12 @@ class BleAdvertisingFragment : Fragment() {
             val userId = userIdString.toIntOrNull()
             if (userId == null) {
                 Log.e(TAG, "Invalid userId in prefs: $userIdString")
+                userIdTextView.text = "User ID: Invalid" // Update TextView
                 initUiAfterDataResolved(gattData = null)
                 return@launch
             }
+
+            userIdTextView.text = "User ID: $userId" // Update TextView with valid userId
 
             // 1) Fetch identity (IO thread)
             val identityJson = fetchIdentityData(userId)
@@ -127,6 +154,20 @@ class BleAdvertisingFragment : Fragment() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val intentFilter = IntentFilter().apply {
+            addAction(ACTION_DEVICE_CONNECTED)
+            addAction(ACTION_DEVICE_DISCONNECTED)
+        }
+        requireActivity().registerReceiver(gattConnectionReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        requireActivity().unregisterReceiver(gattConnectionReceiver)
     }
 
     /**
@@ -272,5 +313,9 @@ class BleAdvertisingFragment : Fragment() {
         const val KEY_USERID = "user_id"
         const val KEY_BLE_DATA = "ble_data"
         const val KEY_PALM_HASH = "palm_hash"
+
+        const val ACTION_DEVICE_CONNECTED = "com.example.palm_app.DEVICE_CONNECTED"
+        const val ACTION_DEVICE_DISCONNECTED = "com.example.palm_app.DEVICE_DISCONNECTED"
+        const val EXTRA_DEVICE_ADDRESS = "DEVICE_ADDRESS"
     }
 }
