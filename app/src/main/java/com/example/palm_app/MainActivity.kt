@@ -1,5 +1,6 @@
 package com.example.palm_app
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -14,6 +15,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.example.palm_app.databinding.ActivityMainBinding
 import androidx.core.view.WindowCompat
+import com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment // Import for KEY_PALM_HASH
 import com.example.palm_app.ui.home.HomeFragment // Ensure this import is present
 
 class MainActivity : AppCompatActivity() {
@@ -28,11 +30,25 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Conditional navigation based on KEY_PALM_HASH
+        val sharedPreferences = getSharedPreferences(BleAdvertisingFragment.PREFS_NAME, Context.MODE_PRIVATE)
+        val palmHash = sharedPreferences.getString(BleAdvertisingFragment.KEY_PALM_HASH, null)
+        val navController = findNavController(R.id.nav_host_fragment_content_main)
+
+        if (!palmHash.isNullOrEmpty()) {
+            // Navigate to BleAdvertisingFragment.
+            // We need to ensure the NavController is ready and the graph is set.
+            // Navigating here ensures it happens after the NavHostFragment is properly set up.
+            navController.navigate(R.id.nav_ble_advertising)
+        }
+        // If palmHash is null or empty, the app will proceed to the startDestination (nav_home) as usual.
+
+
         setSupportActionBar(binding.appBarMain.toolbar)
 
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView: NavigationView = binding.navView
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        // NavController already initialized above for conditional navigation
 
         appBarConfiguration = AppBarConfiguration(
             setOf(

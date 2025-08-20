@@ -52,10 +52,7 @@
         android:name="com.example.palm_app.ui.ble_advertising.BleAdvertisingFragment"
         android:label="@string/menu_ble_advertising"
         tools:layout="@layout/fragment_ble_advertising">
-        <argument
-            android:name="qrData"
-            app:argType="string"
-            app:nullable="true" />
+
     </fragment>
 
 

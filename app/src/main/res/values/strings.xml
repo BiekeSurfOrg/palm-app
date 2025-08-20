@@ -22,5 +22,10 @@
     <string name="prev">Previous</string>
     <string name="footer_label">Actions</string>
 
-
+    <string name="user_id_label">User ID: %s</string>
+    <string name="user_id_not_available">N/A</string>
+    <string name="device_label">Device: %1$s</string>
+    <string name="device_status_label">Device: %1$s (%2$s)</string>
+    <string name="notifications_label">Notifications: %1$s</string>
+    <string name="chunk_label_template">Chunk: %1$s / %2$s</string>
 </resources>

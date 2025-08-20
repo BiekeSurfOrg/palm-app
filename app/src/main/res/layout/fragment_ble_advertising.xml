@@ -6,11 +6,66 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    tools:context=".ui.confirm_registration.ConfirmRegistrationFragment">
+    tools:context=".ui.ble_advertising.BleAdvertisingFragment">
 
+    <!-- Title for the new group -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Device &amp; Transfer Status"
+        android:textAppearance="?attr/textAppearanceHeadline6" />
+
+    <!-- Container for the status fields -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/status_group_background"> <!-- Optional: for a border or background -->
+
+        <TextView
+            android:id="@+id/userIdTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User ID: Loading..."
+            android:textAppearance="?attr/textAppearanceBody2" />
+
+        <TextView
+            android:id="@+id/connectedDeviceAddressTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Device: None"
+            android:textAppearance="?attr/textAppearanceBody2" />
+
+        <TextView
+            android:id="@+id/notificationStatusTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Notifications: N/A"
+            android:textAppearance="?attr/textAppearanceBody2" />
+
+        <TextView
+            android:id="@+id/chunkInfoTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Chunk: N/A"
+            android:textAppearance="?attr/textAppearanceBody2" />
+    </LinearLayout>
+
+    <!-- Existing advertise_button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/advertise_button"
-        android:layout_width="match_parent"
+        android:layout_width="376dp"
         android:layout_height="wrap_content"
         android:backgroundTint="@android:color/holo_blue_dark"
         android:paddingStart="48dp"
@@ -20,16 +75,16 @@
         android:text="Start Advertising"
         android:textSize="24sp"
         app:cornerRadius="50dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.66" />
+        android:layout_marginTop="16dp" />
 
+    <!-- Existing ScrollView for qr_data_display_textview -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:paddingStart="24dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="24dp"
         android:fillViewport="true"
         android:layout_marginBottom="24dp">
 
@@ -40,6 +95,5 @@
             android:text="Waiting for QR data..."
             android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
     </ScrollView>
-    
 
 </LinearLayout>

@@ -70,8 +70,8 @@ class ConfirmRegistrationFragment : Fragment() {
         }
 
         binding.nextButtonConfirm.setOnClickListener {
-            scannedQrCodeContent?.let { qrData ->
-                val action = ConfirmRegistrationFragmentDirections.actionConfirmRegistrationToBleAdvertising(qrData)
+            scannedQrCodeContent?.let {
+                val action = ConfirmRegistrationFragmentDirections.actionConfirmRegistrationToBleAdvertising()
                 findNavController().navigate(action)
             } ?: run {
                 Toast.makeText(requireContext(), "QR Code not scanned yet", Toast.LENGTH_SHORT).show()
@@ -112,11 +112,9 @@ class ConfirmRegistrationFragment : Fragment() {
             .also {
                 it.setAnalyzer(cameraExecutor, BarcodeAnalyzer { qrContent ->
                     // qrContent is available from the BarcodeAnalyzer.
-
-                    // <<< --- MODIFICATION START: Save to SharedPreferences --- >>>
+                    
                     saveStringToPrefs(KEY_PALM_HASH, qrContent)
                     Log.d(TAG, "Saved QR content to SharedPreferences with key '$KEY_PALM_HASH': $qrContent")
-                    // <<< --- MODIFICATION END --- >>>
 
                     scannedQrCodeContent = qrContent // Store the content immediately
                     Log.d(TAG, "scannedQrCodeContent updated to: $qrContent")
