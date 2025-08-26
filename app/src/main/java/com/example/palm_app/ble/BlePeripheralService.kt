@@ -313,6 +313,8 @@ class BlePeripheralService : Service() {
         }
 
         val safeChunk = min(mtu - 3, 244)
+        Log.d(TAG, "streamNotifications: safeChunk = $safeChunk")
+
         val total = (payload.size + safeChunk - 1) / safeChunk
         var seq = 0
         var pos = 0
@@ -330,7 +332,7 @@ class BlePeripheralService : Service() {
 
             try {
                 @Suppress("DEPRECATION")
-                val ok = gattServer?.notifyCharacteristicChanged(device, ch, false) ?: false
+                val ok = gattServer?.notifyCharacteristicChanged(device, ch, true) ?: false
                 if (ok) {
                     Log.i(TAG, "streamNotifications: notifyCharacteristicChanged SUCCESS for seq=$seq")
                 } else {
@@ -341,7 +343,7 @@ class BlePeripheralService : Service() {
                 break
             }
             pos += len; seq += 1
-            try { Thread.sleep(3) } catch (_: InterruptedException) {}
+
         }
         Log.d(TAG, "streamNotifications: Finished streaming. Total packets sent=$seq")
     }
