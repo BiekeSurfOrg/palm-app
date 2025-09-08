@@ -29,6 +29,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONException
+import android.graphics.Bitmap
+import android.widget.ImageView
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 
 class BleAdvertisingFragment : Fragment() {
 
@@ -42,6 +47,7 @@ class BleAdvertisingFragment : Fragment() {
     //private val args: BleAdvertisingFragmentArgs by navArgs()
     private var receiverToken: Intent? = null
 
+    private lateinit var ble_qr_code_imageview: ImageView
     private var isAdvertising = false
     private var qrDataForGatt: String? = null
 
@@ -129,6 +135,35 @@ class BleAdvertisingFragment : Fragment() {
         }
     }
 
+    private fun generateQrCodeBitmap(text: String, width: Int = 400, height: Int = 400): Bitmap? {
+        if (text.isBlank()) {
+            Log.w(TAG, "QR code generation skipped: text is blank.")
+            return null
+        }
+        val writer = QRCodeWriter()
+        return try {
+            val bitMatrix = writer.encode(
+                text,
+                BarcodeFormat.QR_CODE,
+                width,
+                height,
+                mapOf(EncodeHintType.MARGIN to 1) // Keep a small margin
+            )
+            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+            for (x in 0 until width) {
+                for (y in 0 until height) {
+                    bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                }
+            }
+            Log.d(TAG, "QR code generated successfully for text: $text")
+            bmp
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating QR code for text: $text", e)
+            null
+        }
+    }
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -136,6 +171,7 @@ class BleAdvertisingFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_ble_advertising, container, false)
         _binding = view
         qrDataDisplayTextView = view.findViewById(R.id.qr_data_display_textview)
+        ble_qr_code_imageview = view.findViewById(R.id.ble_qr_code_imageview)
         advertiseButton = view.findViewById(R.id.advertise_button)
         connectedDeviceAddressTextView = view.findViewById(R.id.connectedDeviceAddressTextView)
         userIdTextView = view.findViewById(R.id.userIdTextView) // Initialize userIdTextView
@@ -275,6 +311,20 @@ class BleAdvertisingFragment : Fragment() {
         if (!isAdded || view == null) return
         qrDataForGatt = gattData
         qrDataDisplayTextView.text = gattData
+        if (gattData != null) {
+            val qrBitmap = generateQrCodeBitmap(gattData)
+            ble_qr_code_imageview.setImageBitmap(qrBitmap)
+            if (qrBitmap == null) {
+                Log.w(TAG, "QR Code generation failed or data was blank. ImageView may be blank.")
+                // Optionally set a placeholder or error image:
+                // ble_qr_code_imageview.setImageResource(R.drawable.your_qr_error_placeholder)
+            }
+        } else {
+            Log.d(TAG, "gattData is null, clearing QR code ImageView.")
+            ble_qr_code_imageview.setImageBitmap(null)
+            // Optionally set a placeholder:
+            // ble_qr_code_imageview.setImageResource(R.drawable.your_qr_placeholder)
+        }
         updateButtonUI()
 
         // Request permissions or start immediately if already granted
