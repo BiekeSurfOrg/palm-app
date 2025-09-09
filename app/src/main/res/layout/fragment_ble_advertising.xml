@@ -5,76 +5,19 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
     tools:context=".ui.ble_advertising.BleAdvertisingFragment">
 
-    <!-- Title for the new group -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Device &amp; Transfer Status"
-        android:textAppearance="?attr/textAppearanceHeadline6" />
 
-    <!-- Container for the status fields -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+    <ImageView
+        android:id="@+id/ble_qr_code_imageview"
+        android:layout_width="400dp"
+        android:layout_height="400dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="QR Code BLE"
         android:gravity="center_horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/status_group_background"> <!-- Optional: for a border or background -->
-
-        <TextView
-            android:id="@+id/userIdTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="User ID: Loading..."
-            android:textAppearance="?attr/textAppearanceBody2" />
-        <TextView
-            android:id="@+id/manufacturerPayloadTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Payload: None"
-            android:textAppearance="?attr/textAppearanceBody2" />
-        <TextView
-            android:id="@+id/manufacturerPayloadASCIITextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Payload: None"
-            android:textAppearance="?attr/textAppearanceBody2" />
-
-        <TextView
-            android:id="@+id/connectedDeviceAddressTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Device: None"
-            android:textAppearance="?attr/textAppearanceBody2" />
-
-        <TextView
-            android:id="@+id/notificationStatusTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Notifications: N/A"
-            android:textAppearance="?attr/textAppearanceBody2" />
-
-        <TextView
-            android:id="@+id/chunkInfoTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Chunk: N/A"
-            android:textAppearance="?attr/textAppearanceBody2" />
-    </LinearLayout>
+        android:layout_gravity="center_horizontal"
+        android:background="#e0e0e0"
+        tools:srcCompat="@tools:sample/avatars" />
 
     <!-- Existing advertise_button -->
     <com.google.android.material.button.MaterialButton
@@ -87,9 +30,12 @@
         android:paddingEnd="48dp"
         android:paddingBottom="24dp"
         android:text="Start Advertising"
+        android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal"
         android:textSize="24sp"
         app:cornerRadius="50dp"
         android:layout_marginTop="16dp" />
+
 
     <!-- Existing ScrollView for qr_data_display_textview -->
     <ScrollView
@@ -105,17 +51,85 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/ble_qr_code_imageview"
-                android:layout_width="400dp"
-                android:layout_height="400dp"
-                android:layout_marginBottom="16dp"
-                android:contentDescription="QR Code BLE"
-                android:background="#e0e0e0"
-                tools:srcCompat="@tools:sample/avatars" />
+
+        <!-- Container for the status fields -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/status_group_background"> <!-- Optional: for a border or background -->
+            <!-- Title for the new group -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Device &amp; Transfer Status"
+                android:orientation="vertical"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+            <TextView
+                android:id="@+id/userIdTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="User ID: Loading..."
+                android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/manufacturerPayloadTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Payload: None"
+                android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/manufacturerPayloadASCIITextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Payload: None"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/connectedDeviceAddressTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Device: None"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/notificationStatusTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Notifications: N/A"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/chunkInfoTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Chunk: N/A"
+                android:textAppearance="?attr/textAppearanceBody2" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="BLE DATA :"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
 
             <TextView
                 android:id="@+id/qr_data_display_textview"
@@ -123,6 +137,8 @@
                 android:layout_height="wrap_content"
                 android:text="Waiting for QR data..."
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+            </LinearLayout>
+        </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
