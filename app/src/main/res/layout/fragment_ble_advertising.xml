@@ -90,14 +90,7 @@
         android:textSize="24sp"
         app:cornerRadius="50dp"
         android:layout_marginTop="16dp" />
-    <ImageView
-        android:id="@+id/ble_qr_code_imageview"
-        android:layout_width="400dp"
-        android:layout_height="400dp"
-        android:layout_marginBottom="16dp"
-        android:contentDescription="QR Code BLE"
-        android:background="#e0e0e0"
-        tools:srcCompat="@tools:sample/avatars" />
+
     <!-- Existing ScrollView for qr_data_display_textview -->
     <ScrollView
         android:layout_width="match_parent"
@@ -109,13 +102,28 @@
         android:fillViewport="true"
         android:layout_marginBottom="24dp">
 
-
-        <TextView
-            android:id="@+id/qr_data_display_textview"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Waiting for QR data..."
-            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <ImageView
+                android:id="@+id/ble_qr_code_imageview"
+                android:layout_width="400dp"
+                android:layout_height="400dp"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="QR Code BLE"
+                android:background="#e0e0e0"
+                tools:srcCompat="@tools:sample/avatars" />
+
+            <TextView
+                android:id="@+id/qr_data_display_textview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Waiting for QR data..."
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+        </LinearLayout>
     </ScrollView>
 
 </LinearLayout>
