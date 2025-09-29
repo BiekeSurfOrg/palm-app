@@ -30,11 +30,12 @@ To set up and run this project on your local machine, follow these steps:
 
 ### Prerequisites
 
-- Android Studio (Bumblebee 2021.1.1 or later recommended)
-- Android SDK (API Level 33 or higher)
-- Java Development Kit (JDK) 11 or higher
+*   **Android Studio**: Version Bumblebee 2021.1.1 or later recommended
+*   **Android SDK**: API Level 33 or higher
+*   **Java Development Kit (JDK)**: Version 11 or higher
+*   **Git**: For version control and cloning the repository
 
-### Steps
+### Step-by-Step Guide
 
 1.  **Clone the Repository**:
     ```bash
@@ -43,21 +44,41 @@ To set up and run this project on your local machine, follow these steps:
     ```
     *(Note: Replace `https://github.com/your-repo/palm-app.git` with the actual repository URL if available.)*
 
-2.  **Open in Android Studio**:
-    Open the `palm-app` project in Android Studio. Android Studio should automatically detect the Gradle project.
+2.  **Open Project in Android Studio**:
+    - Launch Android Studio
+    - Select 'Open an Existing Project'
+    - Navigate to and select the cloned `palm-app` directory
 
-3.  **Sync Project with Gradle Files**:
-    Once the project is open, Android Studio will likely prompt you to sync the project with Gradle files. If not, you can manually sync by going to `File` > `Sync Project with Gradle Files`.
+3.  **Sync Project with Gradle**:
+    - Wait for Android Studio to index the project
+    - If prompted, click 'Sync Now' to sync with Gradle files
+    - Alternatively, manually sync via `File > Sync Project with Gradle Files`
 
 4.  **Build the Project**:
-    To build the project, go to `Build` > `Make Project` or click the hammer icon in the toolbar. This will compile the application.
+    - From the menu, select `Build > Make Project`
+    - Or use the hammer icon in the toolbar
+    - Wait for the build to complete successfully
 
-5.  **Run on an Emulator or Device**:
+5.  **Run the Application**:
+    *   **On Physical Device**:
+        - Enable Developer Options on your Android device
+        - Enable USB Debugging
+        - Connect device via USB
+        - Select your device from the target device dropdown
+    *   **On Emulator**:
+        - Open `Tools > Device Manager`
+        - Create a new virtual device if needed
+        - Select the virtual device from the target device dropdown
+    - Click the green 'Run' button (triangle icon) to install and launch
 
-    - **Connect an Android Device**: Enable USB debugging on your Android device and connect it to your computer.
-    - **Start an Android Emulator**: In Android Studio, go to `Tools` > `Device Manager` to create and start an Android Virtual Device (AVD).
+## Troubleshooting
 
-    Once a device or emulator is ready, select it from the target device dropdown in the toolbar and click the green 'Run' button (triangle icon) to install and launch the app.
+*   **Gradle Sync Issues**:
+    - Try `File > Invalidate Caches / Restart`
+    - Delete `.gradle` folder and resync
+*   **Build Failures**:
+    - Check for missing dependencies in `build.gradle.kts`
+    - Ensure correct JDK version is selected in `File > Project Structure`
 
 ## Continuous Integration (CI)
 
