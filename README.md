@@ -1,5 +1,5 @@
 # Palm App
-
+ 
 This is an Android application built with Kotlin and Jetpack Navigation Component. It demonstrates basic navigation between fragments, user input validation, the use of Safe Args for passing data, and Bluetooth Low Energy (BLE) functionalities.
 
 ## Features
