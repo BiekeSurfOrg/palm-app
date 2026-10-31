@@ -39,10 +39,9 @@ To set up and run this project on your local machine, follow these steps:
 
 1.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/your-repo/palm-app.git
+    git clone https://github.com/BiekeSurfOrg/palm-app.git
     cd palm-app
     ```
-    *(Note: Replace `https://github.com/your-repo/palm-app.git` with the actual repository URL if available.)*
 
 2.  **Open Project in Android Studio**:
     - Launch Android Studio
@@ -96,3 +95,23 @@ This project includes a GitHub Actions workflow for continuous integration. The 
 *   `.github/workflows/android_build.yml`: GitHub Actions workflow for CI/CD.
 
 Feel free to explore the code and modify it as needed.
+
+
+## Command-line build (alternative to Android Studio)
+
+```bash
+git clone https://github.com/BiekeSurfOrg/palm-app.git && cd palm-app
+echo "sdk.dir=$HOME/Library/Android/sdk" > local.properties   # local only, git-ignored
+./gradlew app:assembleDebug
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+Requires JDK 17, Android SDK 36, a device with Android 13+ (minSdk 33), camera and BLE. No environment variables or secrets are needed.
+
+## Result / output
+
+A debug APK (`app/build/outputs/apk/debug/app-debug.apk`, also produced by the GitHub Actions workflow) that registers a user via QR codes and then advertises over BLE; a Palmki scanner (palm-BLE-GATT-scanner) connects over GATT and receives the registered hash part.
+
+## Status
+
+Last activity: September 2025. Archived on GitHub (BiekeSurfOrg/palm-app); the local copy is deleted.
